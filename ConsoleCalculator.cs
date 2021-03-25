@@ -14,16 +14,17 @@ namespace CalculaCore
 
         static int Main(string[] args)
         {
-            string expression = "",
-                version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            string expression,
+                version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3),
+                info = $" Calcula {version}\n" +
+                    " https://github.com/gladiusglad/calcula-core",
+                help = " Type in a mathematical expression,\n" +
+                    " e.g. \"2 * 100 / 5 + sqrt(6^2 - 32)\"\n" +
+                    " and press ENTER to calculate.\n" +
+                    " Hit ESCAPE at any time to quit.\n\n" +
+                    " Commands: help, debug, info, quit";
 
-            Console.WriteLine("\n" +
-                $" Calcula {version}\n" +
-                " Type in a mathematical expression,\n" +
-                " e.g. \"2 * 100 / 5 + sqrt(6^2 - 32)\"\n" +
-                " and press ENTER to calculate.\n" +
-                " Hit ESCAPE at any time to quit."
-                );
+            Console.WriteLine("\n" + info + "\n\n" + help);
             do
             {
                 expression = ReadLine();
@@ -39,12 +40,23 @@ namespace CalculaCore
                         history.RemoveAt(history.Count - 1);
                     }
 
-                    if (expression == "debug")
+                    switch(expression)
                     {
-                        bool oldDebug = calculator.Options.Debug;
-                        calculator.Options = new CalculatorOptions(Debug: !oldDebug);
-                        WriteLineNonCalculation(oldDebug ? "Debug mode disabled." : "Debug mode enabled.");
-                        continue;
+                        case "debug":
+                            bool oldDebug = calculator.Options.Debug;
+                            calculator.Options = new CalculatorOptions(Debug: !oldDebug);
+                            WriteLineNonCalculation(oldDebug ? "Debug mode disabled." : "Debug mode enabled.");
+                            continue;
+                        case "help":
+                            WriteLineNonCalculation(help);
+                            continue;
+                        case "info":
+                            WriteLineNonCalculation(info);
+                            continue;
+                    }
+
+                    if (expression == "quit") {
+                        break;
                     }
 
                     try
@@ -85,12 +97,10 @@ namespace CalculaCore
                         WriteLineNonCalculation("Please enter a valid mathematical expression.");
                     }
                 }
-                else
-                {
-                    Console.WriteLine("\n\nGoodbye!");
-                }
             }
             while (expression != null);
+
+            Console.WriteLine("\n\nGoodbye!");
 
             return 0;
         }
