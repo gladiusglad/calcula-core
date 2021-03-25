@@ -3,7 +3,7 @@
     /// <summary>
     /// An <see cref="IOperation"/> implementation which represents a <c>decimal</c> number.
     /// </summary>
-    class Number : IOperation
+    public class Number : IOperation
     {
         public decimal N;
 

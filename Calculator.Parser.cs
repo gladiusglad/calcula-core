@@ -18,12 +18,14 @@ namespace CalculaCore
             [Operator.Subtract] = 1
         };
 
-        private static readonly Dictionary<string, decimal> variables = new()
+        private static readonly Dictionary<string, decimal> constants = new()
         {
             ["pi"] = DecimalMath.DecimalEx.Pi,
             ["e"] = DecimalMath.DecimalEx.E,
             ["phi"] = 1.6180339887498948482045868344m
         };
+
+        private readonly Dictionary<string, decimal> variables = new(constants);
 
         /// <summary>
         /// Parse a <see cref="Token"/> <c>List</c> to a root <c>IOperation</c>.
@@ -47,18 +49,19 @@ namespace CalculaCore
         /// </list>
         /// </summary>
         /// <param name="tokens">The <see cref="Token"/> <c>List</c> to parse.</param>
+        /// <param name="enableAssignment">If the assignment operator should assign to a variable.</param>
         /// <returns>The root <see cref="IOperation"/> of the expression.
         /// Returns null if the Token list is invalid.</returns>
-        public static IOperation Parse(List<Token> tokens, bool enableAssignment = false)
+        public IOperation Parse(List<IToken> tokens)
         {
-            if (tokens[^1].Type == TokenType.Invalid)
+            if (tokens[^1] is InvalidToken)
             {
                 return null;
             }
 
-            if (tokens.Count == 1 && tokens[0].Type == TokenType.Number)
+            if (tokens.Count == 1 && tokens[0] is NumberToken onlyNumber)
             {
-                return new Number(ParseNumberToken(tokens[0]));
+                return new Number(ParseNumberToken(onlyNumber));
             }
 
             int i = 0,
@@ -74,7 +77,7 @@ namespace CalculaCore
                 IOperation current = (currentFunc == null) ? operation : new UnaryOperation(operation, currentFunc.Value);
                 currentFunc = null;
 
-                if (i < tokens.Count - 1 && tokens[i + 1].Type == TokenType.FuncFactorial)
+                if (i < tokens.Count - 1 && tokens[i + 1] is FunctionToken functionToken && functionToken.Value == Function.Factorial)
                 {
                     current = new UnaryOperation(current, Function.Factorial);
                 }
@@ -113,6 +116,7 @@ namespace CalculaCore
                 }
             }
 
+            // TODO Hacky recursive solution, should come up with a better one
             bool Precedence(IOperation root, IOperation current, Operator op)
             {
                 // If previous operation was a binary operation and current operator is higher on the order of operations
@@ -136,6 +140,8 @@ namespace CalculaCore
 
             void StoreBrackets(int index)
             {
+                // Wrap bracket operation in an identity function to prevent operator precedence
+                // TODO Hacky solution, should come up with a better one
                 Store(new UnaryOperation(Parse(tokens.GetRange(openBracketIndex + 1, index - openBracketIndex)), Function.Identity));
             }
 
@@ -153,86 +159,89 @@ namespace CalculaCore
 
             for (; i < tokens.Count; i++)
             {
-                Token token = tokens[i];
-                TokenType type = token.Type;
+                IToken token = tokens[i];
 
-                if (type == TokenType.BracketOpen)
+                if (token is ControlToken controlToken)
                 {
-                    // If open bracket is outermost
-                    if (openBrackets == 0)
+                    if (controlToken.Value == ControlTokenType.BracketOpen)
                     {
-                        // Store current index
-                        openBracketIndex = i;
-                    }
+                        // If open bracket is outermost
+                        if (openBrackets == 0)
+                        {
+                            // Store current index
+                            openBracketIndex = i;
+                        }
 
-                    openBrackets++;
-                }
-                else if (type == TokenType.BracketClose)
-                {
-                    // Close the last open bracket
-                    openBrackets--;
+                        openBrackets++;
+                    }
+                    else if (controlToken.Value == ControlTokenType.BracketOpen)
+                    {
+                        // Close the last open bracket
+                        openBrackets--;
 
-                    // If that was the last outermost open bracket or the end of the expression is reached
-                    if (openBrackets == 0)
-                    {
-                        // Parse contents of outermost bracket and store
-                        StoreBrackets(i - 1);
-                    }
-                    // If there were no open brackets to close
-                    if (openBrackets == -1 && openBracketIndex == -1)
-                    {
-                        // Clear current data
-                        result = null;
-                        currentOp = null;
-                        currentFunc = null;
-                        openBrackets = 0;
-                        // Parse from beginning of expression to closing bracket and store
-                        Store(new UnaryOperation(Parse(tokens.GetRange(0, i)), Function.Identity));
+                        // If that was the last outermost open bracket or the end of the expression is reached
+                        if (openBrackets == 0)
+                        {
+                            // Parse contents of outermost bracket and store
+                            StoreBrackets(i - 1);
+                        }
+                        // If there were no open brackets to close
+                        if (openBrackets == -1 && openBracketIndex == -1)
+                        {
+                            // Clear current data
+                            result = null;
+                            currentOp = null;
+                            currentFunc = null;
+                            openBrackets = 0;
+                            // Parse from beginning of expression to closing bracket and store
+                            Store(new UnaryOperation(Parse(tokens.GetRange(0, i)), Function.Identity));
+                        }
                     }
                 }
+                
 
                 // If not inside brackets
                 if (openBrackets == 0)
                 {
-                    if (token.IsOperatorToken())
+                    if (token is OperatorToken operatorToken)
                     {
-                        Operator newOp = TokenToOperator(token);
+                        Operator newOp = operatorToken.Value;
                         if (currentOp != null)
                         {
                             throw new ArgumentException($"Two operators in a row ({currentOp}, {newOp})");
                         }
                         currentOp = newOp;
                     }
-                    if (token.IsFunctionToken() && type != TokenType.FuncFactorial)
+                    if (token is FunctionToken functionToken && functionToken.Value != Function.Factorial)
                     {
-                        Function newFunc = TokenToFunction(token);
+                        Function newFunc = functionToken.Value;
                         if (currentFunc != null)
                         {
                             throw new ArgumentException($"Two functions in a row ({currentFunc}, {newFunc})");
                         }
                         currentFunc = newFunc;
                     }
-                    if (type == TokenType.Variable)
+                    if (token is VariableToken variableToken)
                     {
-                        if (i == 0 && tokens.Count > 1 && tokens[1].Type == TokenType.Assign)
+                        if (i == 0 && tokens.Count > 1 && tokens[1] is ControlToken firstAssign && firstAssign.Value == ControlTokenType.Assign)
                         {
                             IOperation assignValue = Parse(tokens.GetRange(2, tokens.Count - 2));
-                            if (enableAssignment)
+                            if (Options.EnableAssignment)
                             {
-                                variables[token.Value] = assignValue.Resolve();
+                                variables[variableToken.Value] = assignValue.Resolve();
                             }
                             return assignValue;
                         }
                         else
                         {
-                            StoreVariable(token.Value);
+                            StoreVariable(variableToken.Value);
                         }
                     }
-                    if (type == TokenType.Number)
+                    if (token is NumberToken numberToken)
                     {
-                        Store(new Number(ParseNumberToken(token)));
+                        Store(new Number(ParseNumberToken(numberToken)));
                     }
-                    if (type == TokenType.Assign)
+                    if (token is ControlToken assignToken && assignToken.Value == ControlTokenType.Assign)
                     {
                         throw new ArgumentException("Invalid assignment token '='");
                     }
@@ -264,19 +273,9 @@ namespace CalculaCore
             return result;
         }
 
-        private static decimal ParseNumberToken(Token numberToken)
+        private decimal ParseNumberToken(NumberToken numberToken)
         {
             return decimal.Parse(numberToken.Value, CultureInfo.InvariantCulture);
-        }
-
-        private static Operator TokenToOperator(Token token)
-        {
-            return (Operator)((int)token.Type - 2);
-        }
-
-        private static Function TokenToFunction(Token token)
-        {
-            return (Function)((int)token.Type - 9);
         }
     }
 }

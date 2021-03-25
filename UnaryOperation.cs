@@ -6,7 +6,7 @@ namespace CalculaCore
     /// <summary>
     /// An <see cref="IOperation"/> implementation which represents a mathematical operation with one operand.
     /// </summary>
-    class UnaryOperation : IOperation
+    public class UnaryOperation : IOperation
     {
         public enum Function
         {

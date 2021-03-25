@@ -17,9 +17,9 @@ namespace CalculaCore
         /// <param name="expression">The expression to tokenize.</param>
         /// <returns>A <see cref="Token"/> <c>List</c>.
         /// Contains a <see cref="TokenType.Invalid"/> token if the expression is invalid.</returns>
-        public static List<Token> Tokenize([NotNull] string expression)
+        public List<IToken> Tokenize([NotNull] string expression)
         {
-            List<Token> tokens = new();
+            List<IToken> tokens = new();
 
             for (int i = 0; i < expression.Length; i++)
             {
@@ -29,31 +29,31 @@ namespace CalculaCore
                 switch (c)
                 {
                     case '(':
-                        tokens.Add(new Token(TokenType.BracketOpen));
+                        tokens.Add(new ControlToken(ControlTokenType.BracketOpen));
                         continue;
                     case ')':
-                        tokens.Add(new Token(TokenType.BracketClose));
+                        tokens.Add(new ControlToken(ControlTokenType.BracketClose));
                         continue;
                     case '+':
-                        tokens.Add(new Token(TokenType.OpAdd));
+                        tokens.Add(new OperatorToken(BinaryOperation.Operator.Add));
                         continue;
                     case '*':
-                        tokens.Add(new Token(TokenType.OpMultiply));
+                        tokens.Add(new OperatorToken(BinaryOperation.Operator.Multiply));
                         continue;
                     case '/':
-                        tokens.Add(new Token(TokenType.OpDivide));
+                        tokens.Add(new OperatorToken(BinaryOperation.Operator.Divide));
                         continue;
                     case '^':
-                        tokens.Add(new Token(TokenType.OpExponentiate));
+                        tokens.Add(new OperatorToken(BinaryOperation.Operator.Exponentiate));
                         continue;
                     case '%':
-                        tokens.Add(new Token(TokenType.OpModulo));
+                        tokens.Add(new OperatorToken(BinaryOperation.Operator.Modulo));
                         continue;
                     case '=':
-                        tokens.Add(new Token(TokenType.Assign));
+                        tokens.Add(new ControlToken(ControlTokenType.Assign));
                         continue;
                     case '!':
-                        tokens.Add(new Token(TokenType.FuncFactorial));
+                        tokens.Add(new FunctionToken(UnaryOperation.Function.Factorial));
                         continue;
                     default:
                         break;
@@ -80,7 +80,7 @@ namespace CalculaCore
                             case '=':
                                 break;
                             default:
-                                tokens.Add(new Token(TokenType.OpSubtract));
+                                tokens.Add(new OperatorToken(BinaryOperation.Operator.Subtract));
                                 continue;
                         }
                     }
@@ -91,7 +91,7 @@ namespace CalculaCore
                     if (numberMatch.Success)
                     {
                         string numberString = numberMatch.Value;
-                        tokens.Add(new Token(TokenType.Number, numberString));
+                        tokens.Add(new NumberToken(numberString));
 
                         // Skip to the end of the number and continue to next char
                         i += numberString.Length - 1;
@@ -99,7 +99,7 @@ namespace CalculaCore
                     // Else, '-' indicates a negation function
                     else
                     {
-                        tokens.Add(new Token(TokenType.FuncNegate));
+                        tokens.Add(new FunctionToken(UnaryOperation.Function.Negate));
                     }
 
                     continue;
@@ -119,37 +119,37 @@ namespace CalculaCore
                         switch (wordString)
                         {
                             case "sqrt":
-                                tokens.Add(new Token(TokenType.FuncSqrt));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Sqrt));
                                 break;
                             case "log":
-                                tokens.Add(new Token(TokenType.FuncLog));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Log));
                                 break;
                             case "sin":
-                                tokens.Add(new Token(TokenType.FuncSin));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Sin));
                                 break;
                             case "asin":
-                                tokens.Add(new Token(TokenType.FuncAsin));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Asin));
                                 break;
                             case "cos":
-                                tokens.Add(new Token(TokenType.FuncCos));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Cos));
                                 break;
                             case "acos":
-                                tokens.Add(new Token(TokenType.FuncAcos));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Acos));
                                 break;
                             case "tan":
-                                tokens.Add(new Token(TokenType.FuncTan));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Tan));
                                 break;
                             case "atan":
-                                tokens.Add(new Token(TokenType.FuncAtan));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Atan));
                                 break;
                             case "ln":
-                                tokens.Add(new Token(TokenType.FuncLn));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Ln));
                                 break;
                             case "abs":
-                                tokens.Add(new Token(TokenType.FuncAbs));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Abs));
                                 break;
                             case "sign":
-                                tokens.Add(new Token(TokenType.FuncSign));
+                                tokens.Add(new FunctionToken(UnaryOperation.Function.Sign));
                                 break;
                             default:
                                 isFunction = false;
@@ -164,7 +164,7 @@ namespace CalculaCore
                     // If group of letters is a constant
                     if (!isFunction)
                     {
-                        tokens.Add(new Token(TokenType.Variable, wordString));
+                        tokens.Add(new VariableToken(wordString));
                     }
 
                     // Skip to the end of the letter group and continue to next char
@@ -173,7 +173,7 @@ namespace CalculaCore
                 }
 
                 // If all else fails, tokenize the char as invalid and stop tokenizing
-                tokens.Add(new Token(TokenType.Invalid, c.ToString()));
+                tokens.Add(new InvalidToken(i));
                 break;
             }
 

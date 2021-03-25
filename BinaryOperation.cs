@@ -6,7 +6,7 @@ namespace CalculaCore
     /// <summary>
     /// An <see cref="IOperation"/> implementation which represents a mathematical operation with two operands.
     /// </summary>
-    class BinaryOperation : IOperation
+    public class BinaryOperation : IOperation
     {
         public enum Operator
         {
