@@ -2,17 +2,16 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 
 namespace CalculaCore
 {
     class ConsoleCalculator
     {
         private static string previousResult;
-        private static List<string> history = new();
-        private static Calculator calculator = new Calculator();
+        private static readonly List<string> history = new();
+        private static readonly Calculator calculator = new();
 
-        static int Main(string[] args)
+        static int Main(string[] _)
         {
             string expression,
                 version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3),
@@ -40,7 +39,7 @@ namespace CalculaCore
                         history.RemoveAt(history.Count - 1);
                     }
 
-                    switch(expression)
+                    switch (expression)
                     {
                         case "debug":
                             bool oldDebug = calculator.Options.Debug;
@@ -55,7 +54,8 @@ namespace CalculaCore
                             continue;
                     }
 
-                    if (expression == "quit") {
+                    if (expression == "quit")
+                    {
                         break;
                     }
 
@@ -92,7 +92,7 @@ namespace CalculaCore
                             WriteLineNonCalculation("Please enter a valid mathematical expression.");
                         }
                     }
-                    catch (Exception _)
+                    catch
                     {
                         WriteLineNonCalculation("Please enter a valid mathematical expression.");
                     }

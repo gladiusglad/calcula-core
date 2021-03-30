@@ -198,7 +198,7 @@ namespace CalculaCore
                         }
                     }
                 }
-                
+
 
                 // If not inside brackets
                 if (openBrackets == 0)
