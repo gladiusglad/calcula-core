@@ -174,7 +174,7 @@ namespace CalculaCore
 
                         openBrackets++;
                     }
-                    else if (controlToken.Value == ControlTokenType.BracketOpen)
+                    else if (controlToken.Value == ControlTokenType.BracketClose)
                     {
                         // Close the last open bracket
                         openBrackets--;
